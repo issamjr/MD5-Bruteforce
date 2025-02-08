@@ -39,7 +39,7 @@ def crack_hash(hash_to_crack, wordlist, algorithm, thread_id, lock, total_lines)
             progress_bar.update(1)
             if hashed_word == hash_to_crack:
                 with lock:
-                    print(f"\n\n{Fore.GREEN}[+] Found: {word} -> {hashed_word}\n")
+                    print(f"\n\n{Fore.GREEN}[+] Found: {word} -> {hashed_word}{Fore.REST}\n")
                     #logging.info(f"Found: {word} -> {hashed_word}")
                     found_flag.set()  # Set the flag to stop all threads
                     sys.exit()  # Exit the program
