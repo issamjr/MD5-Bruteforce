@@ -5,9 +5,13 @@ import threading
 from tqdm import tqdm
 from colorama import Fore
 import os
+import sys
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
+
+# Global flag to indicate when the hash is found
+found_flag = threading.Event()
 
 # Function to hash a word with the specified algorithm
 def hash_word(word, algorithm):
@@ -27,27 +31,29 @@ def crack_hash(hash_to_crack, wordlist, algorithm, thread_id, lock, total_lines)
         # Initialize the progress bar
         progress_bar = tqdm(total=total_lines, desc=f"Thread-{thread_id} Progress", ncols=100)
         for line in f:
+            if found_flag.is_set():
+                return  # Exit thread early if hash is found
+
             word = line.strip()
             hashed_word = hash_word(word, algorithm)
             progress_bar.update(1)
             if hashed_word == hash_to_crack:
                 with lock:
-                    print(f"{Fore.GREEN}[+] Found: {word} -> {hashed_word}")
-                    logging.info(f"Found: {word} -> {hashed_word}")
-                    return word
+                    print(f"\n\n{Fore.GREEN}[+] Found: {word} -> {hashed_word}\n")
+                    #logging.info(f"Found: {word} -> {hashed_word}")
+                    found_flag.set()  # Set the flag to stop all threads
+                    sys.exit()  # Exit the program
         progress_bar.close()
     print(f"{Fore.YELLOW}[Thread-{thread_id}] Completed scanning the wordlist.\n")
-    return None
 
 # Function to divide the wordlist into chunks for threading
 def divide_wordlist(wordlist, num_threads):
-    # Open the wordlist and read lines
     with open(wordlist, "r", encoding="utf-8", errors="ignore") as f:
         lines = f.readlines()
-    
+
     chunk_size = len(lines) // num_threads
     chunks = [lines[i:i + chunk_size] for i in range(0, len(lines), chunk_size)]
-    
+
     # Write each chunk to a temporary file to pass to threads
     chunk_files = []
     for i, chunk in enumerate(chunks):
@@ -55,7 +61,7 @@ def divide_wordlist(wordlist, num_threads):
         with open(chunk_file, "w", encoding="utf-8") as f:
             f.writelines(chunk)
         chunk_files.append(chunk_file)
-    
+
     return chunk_files
 
 # Main function to execute the brute force attack
@@ -67,7 +73,8 @@ def main():
  / /  / / /_/ / /  / /_/ / /_/  __/ 
 /_/  /_/_.___/_/   \__,_/\__/\___/  
             @Code By issam Junior
-""")
+    """)
+
     parser = argparse.ArgumentParser(description="MD5 Brute Force Cracker")
     parser.add_argument('hash', type=str, help="The MD5 hash to crack")
     parser.add_argument('-a', '--algorithm', choices=['md5', 'sha1', 'sha256'], default='md5', help="Hashing algorithm to use (default: md5)")
@@ -110,4 +117,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
